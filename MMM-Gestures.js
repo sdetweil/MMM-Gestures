@@ -15,6 +15,12 @@
  * the notificationReceived() function.
  */
 Module.register('MMM-Gestures', {
+	defaults: {
+		role: 'none',	// could be 'server' or 'remote'
+		server: null,
+		power_on_command: 'vcgencmd display_power 1',
+		power_off_command: 'vcgencmd display_power 0'
+	},
 
 	// init connection to server role and setup compliment module hiding/showing upon
 	// events
@@ -23,7 +29,7 @@ Module.register('MMM-Gestures', {
 		Log.info('MMM-Gestures start invoked.');
 
 		// notifications are only received once the client (this file) sends the first message to the server (node_helper.js)
-		this.sendSocketNotification('INIT');
+		//this.sendSocketNotification('INIT');  // now done at all modules started time, via config message
 
 	},
 
@@ -32,7 +38,7 @@ Module.register('MMM-Gestures', {
 
 		// hide compliment module by default after all modules were loaded
 		if (notification == 'ALL_MODULES_STARTED'){
-
+			this.sendSocketNotification("config",this.config)
 			var complimentModules = MM.getModules().withClass('compliments');
 
 			if(complimentModules && complimentModules.length == 1){

@@ -17,25 +17,83 @@ const { ReadlineParser } = require('@serialport/parser-readline')
 const { SerialPort } = require('serialport')
 
 module.exports = NodeHelper.create({
-	start: function() {
+	socketIOPath: "m" + this.name,
+	socket: null,
+	config: null,
+	start: function () {
 
-    // by default assuming monitor is on
-    this.hdmiOn = true;
+		// by default assuming monitor is on
+		this.hdmiOn = true;
 
-    // handler for timeout function, used to clear timer when display goes off
-    this.turnOffTimer = undefined;
+		// handler for timeout function, used to clear timer when display goes off
+		this.turnOffTimer = undefined;
 
-    // put monitor to sleep after 5 minutes without gesture or distance events
-    this.WAIT_UNTIL_SLEEP = 1*60*1000;
+		// put monitor to sleep after 5 minutes without gesture or distance events
+		this.WAIT_UNTIL_SLEEP = 1 * 60 * 1000;
+ 
+	},
 
-    this.init();
-  },
+	// broadcast text messages to all subscribers (open web views)
+	broadcast: function (str) {
+		console.log(new Date() + ':  RECEIVED_GESTURE ' + str);
+		switch (this.config.role) {
+			case 'server':
+			case 'none':
+				console.log("sending data up to module=" + str)
+				this.sendSocketNotification("RETRIEVED_GESTURE", str);
+				break;
+			case 'remote':
+				console.log("sending data to server module" + str)
+				this.socket.emit("gesture", str)
+		}
+	},		
 
-  // broadcast text messages to all subscribers (open web views)
-  broadcast: function(str) {
-    this.sendSocketNotification("RETRIEVED_GESTURE", str);
-    console.log(new Date() + ': sendSocketNotification: RETRIEVED_GESTURE ' + str);
-  },
+	socketNotificationReceived(notification, payload) {
+		if (notification === 'config') {
+			this.config = payload
+			if (this.config.role === 'server')
+				this.setupSocketio()
+			else {
+				this.init()
+				if (role === 'remote') {
+					this.setupSocketio()
+					this.connectSocket(this.config.sever)
+				}
+			}
+		}
+	  
+	},
+	
+	setupSocketio() {
+		this.io.of(this.socketIOPath).on("connection", (socket) => {
+			this.handleConnection(socket, "connect");
+		});
+		this.io.of(this.socketIOPath).on("disconnect", () => {
+			if (debug)
+				console.log("socket disconnected");
+		});		
+	},
+
+
+	handleConnection(socket, type) {
+		if (debug) console.log("connection started = " + type);
+		//console.log("socket connected")
+		//socket.emit("connected");
+		if (this.config.role === 'server') {
+			if (type === 'connect') {
+				socket.on("gesture", (data) => {
+					console.log("received getsture message from remote=" + data)
+					this.broadcast(data)
+				});
+			}
+		} else if (this.config.role === 'remote') {
+			this.socket = socket
+		}		
+	},
+
+	connectSocket(server) {
+		this.io.connectSocket()
+	},
 
   // turn display on or off
   saveEnergy: function(person) {
@@ -58,7 +116,7 @@ module.exports = NodeHelper.create({
   		// make system call to power on display
   		var exec = require('child_process').exec;
   		// alternatively could usee also "tvservice -p", but showed less compatability
-  		exec('vcgencmd display_power 1', function(error, stdout, stderr) {
+  		exec(this.config.power_on_command, function(error, stdout, stderr) {
   			if (error !== null) {
   				console.log(new Date() + ': exec error: ' + error);
   			} else {
@@ -79,7 +137,7 @@ module.exports = NodeHelper.create({
   			// make system call to turn off display
   			var exec = require('child_process').exec;
   			// alternatively could usee also "tvservice -o", but showed less compatability
-  			exec('vcgencmd display_power 0', function(error, stdout, stderr) {
+  			exec(this.config.power_off_command, function(error, stdout, stderr) {
   				if (error !== null) {
   					console.log(new Date() + ': exec error: ' + error);
   				} else {
