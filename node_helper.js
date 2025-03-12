@@ -15,7 +15,7 @@
 var NodeHelper = require("node_helper");
 const { ReadlineParser } = require('@serialport/parser-readline')
 const { SerialPort } = require('serialport')
-const io = require('socket.io-client');
+
 
 module.exports = NodeHelper.create({
 	socketIOPath: "m" + this.name,
@@ -109,6 +109,7 @@ module.exports = NodeHelper.create({
 	},
 
 	connectSocket(server) {
+		const io = require('socket.io-client');
 		console.log(this.name+" conecting to server at ", server)
 		this.socket=io.connect(server, { reconnect: true });
 	},
