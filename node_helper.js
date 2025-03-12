@@ -60,7 +60,8 @@ module.exports = NodeHelper.create({
 			if (this.config.role === 'server')
 				this.setupSocketio()
 			else {
-				//this.init()
+				if(this.test_local === false)
+					this.init()
 				if (this.config.role === 'remote') {
 					this.setupSocketio()
 					this.connectSocket(this.config.sever)
