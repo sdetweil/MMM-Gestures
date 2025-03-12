@@ -23,7 +23,8 @@
 	},
 	"homepage": "https://github.com/thobach/MMM-Gestures#readme",
 	"dependencies": {
-		"serialport": "latest"
+		"serialport": "latest",
+		"socket.io-client": "^4.8.1"
 	},
 	"scripts": {
 		"postinstall": "./postinstall"

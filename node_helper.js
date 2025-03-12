@@ -15,11 +15,14 @@
 var NodeHelper = require("node_helper");
 const { ReadlineParser } = require('@serialport/parser-readline')
 const { SerialPort } = require('serialport')
+const io = require('socket.io-client');
 
 module.exports = NodeHelper.create({
 	socketIOPath: "m" + this.name,
 	socket: null,
 	config: null,
+	test_local: false,
+	list:["LEFT","RIGHT","UP","DOWN"],
 	start: function () {
 
 		// by default assuming monitor is on
@@ -31,6 +34,9 @@ module.exports = NodeHelper.create({
 		// put monitor to sleep after 5 minutes without gesture or distance events
 		this.WAIT_UNTIL_SLEEP = 1 * 60 * 1000;
  
+	},
+	getRandomInt(max) {
+	return Math.floor(Math.random() * max);
 	},
 
 	// broadcast text messages to all subscribers (open web views)
@@ -54,10 +60,20 @@ module.exports = NodeHelper.create({
 			if (this.config.role === 'server')
 				this.setupSocketio()
 			else {
-				this.init()
-				if (role === 'remote') {
+				//this.init()
+				if (this.config.role === 'remote') {
 					this.setupSocketio()
 					this.connectSocket(this.config.sever)
+					if (this.test_local) {
+						console.log("starting test message sender")
+						setTimeout(() => {
+							setInterval(() => {
+								let r = this.getRandomInt(this.list.length)
+								console.log("sending " + this.list[r])
+								this.broadcast(this.list[r])
+							}, 10000)
+						}, 15000)
+					}
 				}
 			}
 		}
@@ -92,7 +108,8 @@ module.exports = NodeHelper.create({
 	},
 
 	connectSocket(server) {
-		this.io.connectSocket()
+		console.log(this.name+" conecting to server at ", server)
+		this.socket=io.connect(server, { reconnect: true });
 	},
 
   // turn display on or off
